@@ -196,6 +196,17 @@ h1 {
   text-decoration: none;
 }
 
+.citation-box {
+  margin: 12px 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 31, 61, 0.04);
+  border: 1px solid rgba(15, 31, 61, 0.08);
+  color: var(--hdfc-navy);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .chat-log {
   background: #f9fafc;
   border: 1px solid var(--border);

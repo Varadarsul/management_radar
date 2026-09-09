@@ -8,9 +8,12 @@ from typing import Any, Dict, List, Tuple
 from urllib.parse import urlparse, parse_qs
 
 import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 from pypdf import PdfReader
 from youtube_transcript_api import YouTubeTranscriptApi
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -166,13 +169,62 @@ def infer_tags(text: str) -> List[str]:
     return found
 
 
+def build_citation(company_name: str, title: str, source_type: str, reference: str) -> str:
+    normalized_type = (source_type or "").upper()
+    if normalized_type in {"YOUTUBE", "VIDEO"}:
+        marker = "video timestamp"
+    elif reference and reference.lower().startswith("page"):
+        marker = "PDF page"
+    elif reference and reference.lower().startswith("p") and reference[1:].isdigit():
+        marker = "PDF page"
+    else:
+        marker = "source reference"
+
+    reference_text = reference.strip() if reference else "source"
+    return f"{company_name} :: {title} ({marker}: {reference_text})"
+
+
+def format_timestamp(seconds: float) -> str:
+    total_seconds = int(float(seconds))
+    minutes, secs = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def extract_pdf_pages(pdf_path: Path) -> List[str]:
+    try:
+        reader = PdfReader(str(pdf_path))
+        pages: List[str] = []
+        for page in reader.pages:
+            text = page.extract_text() or ""
+            if text.strip():
+                pages.append(text.strip())
+        return pages
+    except Exception:
+        return []
+
+
+def extract_transcript_segments(video_url: str) -> List[Dict[str, Any]]:
+    video_id = get_video_id(video_url)
+    if not video_id:
+        return []
+    try:
+        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "en-US"])
+        return [{"text": item.get("text", "").strip(), "start": item.get("start", 0)} for item in transcript if item.get("text", "").strip()]
+    except Exception:
+        return []
+
+
 def generate_answer(question: str, evidence: Dict[str, Any]) -> str:
     results = evidence.get("results", []) if isinstance(evidence, dict) else evidence
     if not results:
         return "I do not have direct evidence in the cached sources to answer that question confidently."
 
     best = results[0]
-    answer = f"Based on the retrieved passages, {best.get('snippet', 'the company commentary suggests this direction')}."
+    citation = best.get("citation") or "the relevant source material"
+    answer = f"Based on {citation}, {best.get('snippet', 'the company commentary suggests this direction')}."
     if len(results) > 1:
         answer += f" Supporting evidence also appears in {len(results) - 1} additional source(s)."
     return answer
@@ -211,14 +263,19 @@ def seed_sources_from_csv() -> None:
                 safe_name = f"{safe_filename(company_name)}_{safe_filename(title)}.pdf"
                 cached_path = CACHE_DIR / safe_name
                 if download_url(url, cached_path):
-                    content = extract_text_from_pdf(cached_path)
+                    pages = extract_pdf_pages(cached_path)
+                    content = "\n".join(pages) if pages else "PDF content could not be extracted."
                 else:
                     content = "BSE announcement text unavailable due to fetch failure."
-            elif source_type.upper() == "YOUTUBE":
-                transcript = extract_transcript_from_video(url)
-                content = transcript or "YouTube transcript unavailable for this clip."
+            elif source_type.upper() in {"YOUTUBE", "VIDEO"}:
+                segments = extract_transcript_segments(url)
+                if segments:
+                    content = " ".join(segment["text"] for segment in segments)
+                else:
+                    content = "YouTube transcript unavailable for this clip."
                 cached_path = CACHE_DIR / f"{safe_filename(company_name)}_{safe_filename(title)}.txt"
-                cached_path.write_text(content, encoding="utf-8") if content else None
+                if content:
+                    cached_path.write_text(content, encoding="utf-8")
 
             conn.execute(
                 "UPDATE sources SET cached_path = ?, content = ? WHERE id = ?",
@@ -226,28 +283,102 @@ def seed_sources_from_csv() -> None:
             )
 
             if content:
-                chunks = chunk_text(content, 180)
-                if not chunks:
-                    chunks = [content]
-                for chunk in chunks:
-                    tags = ",".join(infer_tags(chunk))
-                    snippet = chunk[:220]
-                    conn.execute(
-                        """
-                        INSERT INTO text_items (company_id, source_id, title, source_type, citation, content, snippet, tags)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            company_id,
-                            source_id,
-                            title,
-                            source_type,
-                            f"{company_name} :: {title}",
-                            chunk,
-                            snippet,
-                            tags,
-                        ),
-                    )
+                if source_type.upper() == "BSE_PDF":
+                    pages = extract_pdf_pages(cached_path) if cached_path and cached_path.exists() else []
+                    if pages:
+                        for page_number, page_text in enumerate(pages, start=1):
+                            chunks = chunk_text(page_text, 180)
+                            if not chunks:
+                                chunks = [page_text]
+                            for chunk in chunks:
+                                reference = f"Page {page_number}"
+                                tags = ",".join(infer_tags(chunk))
+                                snippet = chunk[:220]
+                                conn.execute(
+                                    """
+                                    INSERT INTO text_items (company_id, source_id, title, source_type, citation, content, snippet, tags)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                    """,
+                                    (
+                                        company_id,
+                                        source_id,
+                                        title,
+                                        source_type,
+                                        build_citation(company_name, title, source_type, reference),
+                                        chunk,
+                                        snippet,
+                                        tags,
+                                    ),
+                                )
+                    else:
+                        chunks = chunk_text(content, 180)
+                        if not chunks:
+                            chunks = [content]
+                        for chunk in chunks:
+                            tags = ",".join(infer_tags(chunk))
+                            snippet = chunk[:220]
+                            conn.execute(
+                                """
+                                INSERT INTO text_items (company_id, source_id, title, source_type, citation, content, snippet, tags)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    company_id,
+                                    source_id,
+                                    title,
+                                    source_type,
+                                    build_citation(company_name, title, source_type, "source"),
+                                    chunk,
+                                    snippet,
+                                    tags,
+                                ),
+                            )
+                elif source_type.upper() in {"YOUTUBE", "VIDEO"}:
+                    segments = extract_transcript_segments(url)
+                    if segments:
+                        for segment in segments:
+                            segment_text = segment["text"]
+                            timestamp = format_timestamp(segment["start"])
+                            tags = ",".join(infer_tags(segment_text))
+                            conn.execute(
+                                """
+                                INSERT INTO text_items (company_id, source_id, title, source_type, citation, content, snippet, tags)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    company_id,
+                                    source_id,
+                                    title,
+                                    source_type,
+                                    build_citation(company_name, title, source_type, timestamp),
+                                    segment_text,
+                                    segment_text[:220],
+                                    tags,
+                                ),
+                            )
+                    else:
+                        chunks = chunk_text(content, 180)
+                        if not chunks:
+                            chunks = [content]
+                        for chunk in chunks:
+                            tags = ",".join(infer_tags(chunk))
+                            snippet = chunk[:220]
+                            conn.execute(
+                                """
+                                INSERT INTO text_items (company_id, source_id, title, source_type, citation, content, snippet, tags)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    company_id,
+                                    source_id,
+                                    title,
+                                    source_type,
+                                    build_citation(company_name, title, source_type, "source"),
+                                    chunk,
+                                    snippet,
+                                    tags,
+                                ),
+                            )
 
 
 def get_company_rows() -> List[Dict[str, Any]]:
@@ -310,6 +441,30 @@ def retrieve_relevant_chunks(question: str, limit: int = 5) -> List[Dict[str, An
     return results
 
 
+def get_company_sources(company_id: int) -> List[Dict[str, Any]]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM sources WHERE company_id = ? ORDER BY date DESC, id DESC",
+            (company_id,),
+        ).fetchall()
+
+    sources: List[Dict[str, Any]] = []
+    for row in rows:
+        company_name = conn.execute("SELECT name FROM companies WHERE id = ?", (company_id,)).fetchone()["name"]
+        content = row["content"] or ""
+        sources.append({
+            "id": row["id"],
+            "title": row["title"],
+            "type": row["source_type"],
+            "url": row["url"],
+            "date": row["date"],
+            "company": company_name,
+            "content": content[:220] if content else "Source loaded successfully.",
+            "cached_path": row["cached_path"],
+        })
+    return sources
+
+
 @app.before_request
 def before_request_hook():
     init_db()
@@ -325,6 +480,21 @@ def index():
 @app.route("/api/companies")
 def api_companies():
     return jsonify({"companies": get_company_rows()})
+
+
+@app.route("/api/company/<int:company_id>")
+def api_company_detail(company_id: int):
+    company = None
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM companies WHERE id = ?", (company_id,)).fetchone()
+        if row:
+            company = {
+                "id": row["id"],
+                "name": row["name"],
+                "sector": row["sector"],
+                "sources": get_company_sources(company_id),
+            }
+    return jsonify({"company": company})
 
 
 @app.route("/api/chat", methods=["POST"])

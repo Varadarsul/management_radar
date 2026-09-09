@@ -30,6 +30,7 @@ function buildTimeline(records) {
           </div>
           <h3>${source.title}</h3>
           <p>${(source.content || 'Source loaded successfully.').slice(0, 220)}</p>
+          <div class="citation-box">Evidence: ${source.citation || 'Source reference available in the database.'}</div>
           <a href="${source.url}" target="_blank" rel="noreferrer">Open source</a>
         </div>
       </article>
@@ -49,6 +50,7 @@ async function setCompany(companyId) {
     const formatted = company.sources.map((source) => ({
       ...source,
       company: company.name,
+      citation: source.cached_path ? `Source file: ${source.cached_path}` : 'Source reference available',
     }));
     buildTimeline(formatted);
   }
