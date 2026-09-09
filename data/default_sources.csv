@@ -1,0 +1,7 @@
+company,sector,source_type,title,url,summary
+Maruti Suzuki,Automotive,pdf,Maruti Q1 update,data/cache/maruti_q1.txt,"Quarterly capacity and demand update"
+Maruti Suzuki,Automotive,pdf,Maruti sales outlook,data/cache/maruti_sales.txt,"Management commentary on production and growth"
+Maruti Suzuki,Automotive,video,Management interview on expansion,data/cache/maruti_video_1.txt,"CEO discusses plant expansion and demand"
+Infosys,IT,pdf,Infosys FY outlook,data/cache/infosys_outlook.txt,"Margin and restructuring comments"
+Infosys,IT,pdf,Infosys deal momentum,data/cache/infosys_deals.txt,"Large deal pipeline and demand commentary"
+Infosys,IT,video,Management interview on AI and hiring,data/cache/infosys_video_1.txt,"CEO and CFO discuss AI investments and margins"

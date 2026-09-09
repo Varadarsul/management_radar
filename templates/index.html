@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Management Radar</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">HDFC AMC · AI & Digital Group</p>
+          <h1>Management Radar</h1>
+        </div>
+        <div class="header-badge">24h prototype</div>
+      </header>
+
+      <main class="dashboard">
+        <aside class="sidebar card">
+          <h2>Companies</h2>
+          <div id="company-list" class="company-list">
+            {% for company in companies %}
+            <button class="company-chip" data-company-id="{{ company.id }}">
+              <span>{{ company.name }}</span>
+              <small>{{ company.sector }}</small>
+            </button>
+            {% endfor %}
+          </div>
+        </aside>
+
+        <section class="content">
+          <div class="timeline card" id="timeline-panel">
+            <div class="section-header">
+              <h2>Timeline</h2>
+            </div>
+            <div id="timeline-items" class="timeline-items">
+              {% if companies %}
+                {% for company in companies %}
+                  {% for source in company.sources %}
+                    <article class="timeline-item">
+                      <div class="dot"></div>
+                      <div class="content-box">
+                        <div class="meta-row">
+                          <span class="pill">{{ source.type }}</span>
+                          <span>{{ company.name }}</span>
+                          <span>{{ source.date or 'Recent' }}</span>
+                        </div>
+                        <h3>{{ source.title }}</h3>
+                        <p>{{ source.content or 'Source loaded.' }}</p>
+                        <a href="{{ source.url }}" target="_blank" rel="noreferrer">Open source</a>
+                      </div>
+                    </article>
+                  {% endfor %}
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="chat card">
+            <div class="section-header">
+              <h2>Analyst chat</h2>
+            </div>
+            <div id="chat-log" class="chat-log">
+              <div class="message bot">
+                Ask about expansion, margins, deal flow, management change, or risks.
+              </div>
+            </div>
+            <form id="chat-form" class="chat-form">
+              <input id="question-input" type="text" placeholder="What did management say about expansion plans?" />
+              <button type="submit">Ask</button>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

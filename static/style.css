@@ -1,0 +1,261 @@
+:root {
+  --hdfc-red: #d71920;
+  --hdfc-navy: #0f1f3d;
+  --hdfc-navy-soft: #1f3358;
+  --paper: #f5f7fb;
+  --panel: #ffffff;
+  --border: #e5eaf3;
+  --text: #1b2434;
+  --muted: #70809c;
+  --success: #eaf7ee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #f8f4f5 0%, #f3f6fb 100%);
+  color: var(--text);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.page-shell {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+h1 {
+  margin: 0;
+  color: var(--hdfc-navy);
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
+.header-badge {
+  background: var(--hdfc-red);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 28px rgba(15, 31, 61, 0.06);
+}
+
+.sidebar {
+  padding: 20px;
+}
+
+.company-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.company-chip {
+  border: 1px solid var(--border);
+  background: #fbfcff;
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.company-chip:hover,
+.company-chip.active {
+  border-color: rgba(215, 25, 32, 0.4);
+  background: rgba(215, 25, 32, 0.04);
+}
+
+.company-chip span {
+  font-weight: 700;
+  color: var(--hdfc-navy);
+}
+
+.company-chip small {
+  color: var(--muted);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.timeline, .chat {
+  padding: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.section-header h2 {
+  margin: 0;
+  color: var(--hdfc-navy);
+}
+
+.timeline-items {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--hdfc-red);
+  margin-top: 8px;
+  box-shadow: 0 0 0 6px rgba(215, 25, 32, 0.12);
+}
+
+.content-box {
+  background: #f8f9fd;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.pill {
+  background: rgba(15, 31, 61, 0.08);
+  color: var(--hdfc-navy);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-weight: 700;
+}
+
+.content-box h3 {
+  margin: 0 0 10px;
+  color: var(--hdfc-navy);
+  font-size: 1.1rem;
+}
+
+.content-box p {
+  margin: 0 0 12px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.content-box a {
+  color: var(--hdfc-red);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.chat-log {
+  background: #f9fafc;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-height: 160px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.message {
+  max-width: 85%;
+  border-radius: 12px;
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+
+.message.bot {
+  background: var(--hdfc-navy);
+  color: white;
+  align-self: flex-start;
+}
+
+.message.user {
+  background: var(--success);
+  color: var(--hdfc-navy);
+  align-self: flex-end;
+}
+
+.chat-form {
+  display: flex;
+  gap: 12px;
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 1rem;
+}
+
+.chat-form button {
+  background: var(--hdfc-red);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-form {
+    flex-direction: column;
+  }
+}
